@@ -10,6 +10,8 @@ import multitensor_systems
 import layers
 import solution_selection
 import visualization
+import os
+from tqdm import tqdm
 
 
 """
@@ -123,7 +125,11 @@ def take_step(task, model, optimizer, train_step, train_history_logger):
 if __name__ == "__main__":
     start_time = time.time()
 
-    task_nums = list(range(400))
+    save_root = "results"
+    if save_root is not None:
+        os.makedirs(save_root, exist_ok=True)
+    # task_nums = list(range(400))
+    task_nums = list(range(4))
     split = "training"  # "training", "evaluation, or "test"
 
     # Preprocess all tasks, make models, optimizers, and loggers. Make plots.
@@ -137,7 +143,7 @@ if __name__ == "__main__":
         optimizer = torch.optim.Adam(model.weights_list, lr=0.01, betas=(0.5, 0.9))
         optimizers.append(optimizer)
         train_history_logger = solution_selection.Logger(task)
-        visualization.plot_problem(train_history_logger)
+        visualization.plot_problem(train_history_logger,save_dir=os.path.join(save_root, task.task_name))
         train_history_loggers.append(train_history_logger)
 
     # Get the solution hashes so that we can check for correctness
@@ -145,13 +151,18 @@ if __name__ == "__main__":
 
     # Train the models one by one
     for i, (task, model, optimizer, train_history_logger) in enumerate(zip(tasks, models, optimizers, train_history_loggers)):
-        n_iterations = 2000
-        for train_step in range(n_iterations):
+        n_iterations = 20 #2000
+        print(f"Training task {i+1}/{len(tasks)}: {task.task_name} for {n_iterations} iterations.")
+        for train_step in tqdm(range(n_iterations)):
             take_step(task, model, optimizer, train_step, train_history_logger)
-        visualization.plot_solution(train_history_logger)
-        solution_selection.save_predictions(train_history_loggers[:i+1])
-        solution_selection.plot_accuracy(true_solution_hashes)
+        
+        save_dir = os.path.join(save_root, task.task_name)
+        os.makedirs(save_dir, exist_ok=True)    
+        visualization.plot_solution(train_history_logger, save_dir=save_dir)
+        save_predictions_frame = os.path.join(save_dir,'predictions.npz')
+        solution_selection.save_predictions(train_history_loggers[:i+1],save_predictions_frame)
+        solution_selection.plot_accuracy(true_solution_hashes, save_predictions_frame)
 
     # Write down how long it all took
-    with open('timing_result.txt', 'w') as f:
+    with open(os.path.join(save_root, 'timing_result.txt'), 'w') as f:
         f.write("Time elapsed in seconds: " + str(time.time() - start_time))

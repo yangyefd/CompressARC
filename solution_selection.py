@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import os
 
 np.random.seed(0)
 torch.manual_seed(0)
@@ -183,8 +184,9 @@ def plot_accuracy(true_solution_hashes, fname='predictions.npz'):
     ] for task_num, task_history in enumerate(solution_picks_histories)])
 
     accuracy_curve = correct.mean(axis=0)
+    base_dir = os.path.dirname(fname)
 
     plt.figure()
     plt.plot(np.arange(n_iterations), accuracy_curve, 'k-')
-    plt.savefig('accuracy_curve.pdf', bbox_inches='tight')
+    plt.savefig(os.path.join(base_dir, 'accuracy_curve.pdf'), bbox_inches='tight')
     plt.close()
